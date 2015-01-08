@@ -61,7 +61,6 @@ def parse(String description) {
 		map = parseReportAttributeMessage(description)
 	}
 	else if (description?.startsWith('zone status')) {
-		getBattery() //request battery now since we know the sensor is awake
 		map = parseIasMessage(description)
 	}
 
