@@ -82,7 +82,7 @@ def getBattery() {
 	//seems to only process this request when it has another report to send.
 	//Likely that the sensor is only awake for a short time after open/close
 	log.debug "Requesting battery level.."
-	"st rattr 0x${device.deviceNetworkId} 1 1 0x0020"
+	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 }
 
 def refresh() {
