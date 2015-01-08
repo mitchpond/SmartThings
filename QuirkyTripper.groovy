@@ -21,6 +21,7 @@ metadata {
     	capability "Contact Sensor"
         capability "Battery"
         capability "Refresh"
+        capability "Configuration"
     
     	command "getClusters"
         command "getBattery"
@@ -85,7 +86,8 @@ def getBattery() {
 }
 
 def refresh() {
-		log.debug "Refreshing battery "
+		//this only refreshes battery. Other updates are pushed
+		log.debug "Refreshing"
 		"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 }
 
