@@ -26,7 +26,7 @@ metadata {
         command "getBattery"
         command "configure"
         
-        fingerprint (profileId: "0104", deviceId: "0402", endpointId: "01", inClusters: "0000 0001 0003 0500 0020 0B05", outClusters: "0003 0019")
+        fingerprint endpointId: "01", profileId: "0104", deviceId: "0402", inClusters: "06 0000 0001 0003 0500 0020 0B05", outClusters: "02 0003 0019"
 	}
 
 	// simulator metadata
