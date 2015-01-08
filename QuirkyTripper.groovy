@@ -22,8 +22,6 @@ metadata {
 	capability "Refresh"
 	capability "Configuration"
     
-	command "getClusters"
-	command "getBattery"
 	command "configure"
         
 	fingerprint endpointId: "01", profileId: "0104", deviceId: "0402", inClusters: "0000,0001,0003,0500,0020,0B05", outClusters: "0003,0019"
@@ -77,16 +75,16 @@ def parse(String description) {
 	}
 	return result
 }
-
+/*
 def getBattery() {
 	//seems to only process this request when it has another report to send.
 	//Likely that the sensor is only awake for a short time after open/close
 	log.debug "Requesting battery level.."
 	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 }
-
+*/
 def refresh() {
-	getBattery()
+	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 }
 
 def configure() {
@@ -99,12 +97,15 @@ def configure() {
 	
 		"zcl global send-me-a-report 0x500 0x0012 0x19 0 0xFF {}", "delay 200", //get notified on tamper
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
+		
+		"zcl global send-me-a-report 1 0x20 0x20 600 3600 {01}", "delay 200", //battery report request
+		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}"
 		]
-    	cmd
+    	cmd + refresh()
 }
 
 def enrollResponse() {
