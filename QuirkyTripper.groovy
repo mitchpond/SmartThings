@@ -121,8 +121,9 @@ private Map parseCatchAllMessage(String description) {
  	if (shouldProcessMessage(cluster)) {
 		switch(cluster.clusterId) {
 			case 0x0001:
-			resultMap = getBatteryResult(cluster.data.last())
-			break
+				log.debug "Received a catchall message for battery status!"
+				resultMap = getBatteryResult(cluster.data.last())
+				break
             }
         }
 
@@ -148,6 +149,7 @@ private Map parseReportAttributeMessage(String description) {
 
 	Map resultMap = [:]
 	if (descMap.cluster == "0001" && descMap.attrId == "0020") {
+		log.debug "Received battery level report"
 		resultMap = getBatteryResult(Integer.parseInt(descMap.value, 16))
 	}
 
@@ -168,7 +170,8 @@ private Map parseIasMessage(String description) {
     
 	if (status & 0b00000100) {log.debug "Tampered"}
 	else if (~status & 0b00000100) log.debug "Not tampered"
-    
+	
+	//TODO: find the values that the device is using to determine OK/Low and just report those in lieu of actual voltages
 	if (status & 0b00001000) log.debug "Low battery"
 	else if (~status & 0b00001000) log.debug "Battery OK"
     
@@ -201,7 +204,6 @@ private Map getBatteryResult(rawValue) {
 
 
 private Map getContactResult(value) {
-	log.debug 'Contact Status'
 	def linkText = getLinkText(device)
 	def descriptionText = "${linkText} was ${value == 'open' ? 'opened' : 'closed'}"
 	return [
