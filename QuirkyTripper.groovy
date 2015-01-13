@@ -19,10 +19,12 @@ metadata {
     
 	capability "Contact Sensor"
 	capability "Battery"
-	capability "Refresh"
 	capability "Configuration"
     
+	attribute "tamper", "string"
+    
 	command "configure"
+	command "resetTamper"
         
 	fingerprint endpointId: "01", profileId: "0104", deviceId: "0402", inClusters: "0000,0001,0003,0500,0020,0B05", outClusters: "0003,0019"
 	}
@@ -39,13 +41,18 @@ metadata {
 		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false) {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-
+		/*
 		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat") {
 			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
-
+		*/
+		standardTile("tamper", "device.tamper", inactiveLabel: false, canChangeBackground: true, canChangeIcon: true) {
+			state "OK", label: "Tamper OK", backgroundColor:"#79b821", icon: "st.security.alarm.on"
+			state "tampered", label: "Tampered", action: "resetTamper", backgroundColor:"#ffa81e", icon: "st.security.alarm.off", nextState: "OK"
+		}
+        
 		main ("contact")
-		details(["contact","battery","refresh"])
+		details(["contact","battery","tamper"])
 	}
 }
 
@@ -74,17 +81,14 @@ def parse(String description) {
 	}
 	return result
 }
-/*
-def getBattery() {
-	//seems to only process this request when it has another report to send.
-	//Likely that the sensor is only awake for a short time after open/close
-	log.debug "Requesting battery level.."
-	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
-}
-*/
+
+/** This command doesn't really do anything since the device sleeps 99% of the time
+
 def refresh() {
 	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 }
+
+*/
 
 def configure() {
 	String zigbeeId = swapEndianHex(device.hub.zigbeeId)
@@ -97,14 +101,15 @@ def configure() {
 		"zcl global send-me-a-report 0x500 0x0012 0x19 0 0xFF {}", "delay 200", //get notified on tamper
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 		
-		"zcl global send-me-a-report 1 0x20 0x20 5 3600 {01}", "delay 200", //battery report request
+		"zcl global send-me-a-report 1 0x20 0x20 5 3600 {}", "delay 200", //battery report request
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}"
+		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500",
+        "st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 		]
-    	cmd + refresh()
+    	cmd
 }
 
 def enrollResponse() {
@@ -121,7 +126,7 @@ private Map parseCatchAllMessage(String description) {
  	if (shouldProcessMessage(cluster)) {
 		switch(cluster.clusterId) {
 			case 0x0001:
-				log.debug "Received a catchall message for battery status!"
+				log.debug "Received a catchall message for battery status. This should not happen."
 				resultMap = getBatteryResult(cluster.data.last())
 				break
             }
@@ -145,7 +150,7 @@ private Map parseReportAttributeMessage(String description) {
 		def nameAndValue = param.split(":")
 		map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
 	}
-	log.debug "Desc Map: $descMap"
+	//log.debug "Desc Map: $descMap"
 
 	Map resultMap = [:]
 	if (descMap.cluster == "0001" && descMap.attrId == "0020") {
@@ -160,26 +165,38 @@ private Map parseIasMessage(String description) {
 	List parsedMsg = description.split(' ')
 	String msgCode = parsedMsg[2]
 	int status = Integer.decode(msgCode)
+	def linkText = getLinkText(device)
 
 	Map resultMap = [:]
     
 	if (status & 0b00000001) {resultMap = getContactResult('open')}
 	else if (~status & 0b00000001) resultMap = getContactResult('closed')
     
-	//TODO: state updates and maybe tiles for tamper alert and battery alert
-    
-	if (status & 0b00000100) {log.debug "Tampered"}
-	else if (~status & 0b00000100) log.debug "Not tampered"
+	if (status & 0b00000100) {
+    		//log.debug "Tampered"
+        	resultMap += createEvent([name: "tamper", value:"tampered"])
+	}
+	else if (~status & 0b00000100) {
+		//don't reset the status here as we want to force a manual reset
+		//log.debug "Not tampered"
+		//resultMap += createEvent([name: "tamper", value:"OK"])
+	}
 	
-	//TODO: find the values that the device is using to determine OK/Low and just report those in lieu of actual voltages
-	if (status & 0b00001000) log.debug "Low battery"
-	else if (~status & 0b00001000) log.debug "Battery OK"
+	if (status & 0b00001000) {
+		//battery reporting seems unreliable with these devices. However, they do report when low.
+		//Just in case the battery level reporting has stopped working, we'll at least catch the low battery warning.
+		log.debug "${linkText} reports low battery!"
+		resultMap += createEvent(name: "battery", value: 10)
+	}
+	else if (~status & 0b00001000) {
+		//log.debug "${linkText} battery OK"
+	}
     
 	return resultMap
 }
 
 private Map getBatteryResult(rawValue) {
-	log.debug 'Battery'
+	//log.debug 'Battery'
 	def linkText = getLinkText(device)
 
 	def result = [
@@ -211,6 +228,11 @@ private Map getContactResult(value) {
 		value: value,
 		descriptionText: descriptionText
 		]
+}
+
+private resetTamper(){
+	log.debug "Tamper alarm reset."
+	sendEvent([name: "tamper", value:"OK"])
 }
 
 private hex(value) {
