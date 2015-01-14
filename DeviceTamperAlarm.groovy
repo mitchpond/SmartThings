@@ -10,8 +10,8 @@ definition(
     author: "Mitch Pond",
     description: "Receive notification when a device is tampered with. Currently supports Quirky Tripper.",
     category: "Safety & Security",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Meta/window_contact.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Meta/window_contact@2x.png"
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png"
 )
 
 preferences {
