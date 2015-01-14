@@ -23,7 +23,7 @@ preferences {
 		input "pushAndPhone", "enum", title: "Both Push and SMS?", required: false, options: ["Yes","No"]
 	}
     section("Sound these alarms..."){
-    	input "alarms", "capability.alarm", title: "Alarm Devices", required: false
+    	input "alarms", "capability.alarm", title: "Alarm Devices", required: false, multiple: true
     }
 }
 
