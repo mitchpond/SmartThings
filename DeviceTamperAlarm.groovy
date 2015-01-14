@@ -10,7 +10,7 @@ definition(
     author: "Mitch Pond",
     description: "Receive notification when a device is tampered with. Currently supports Quirky Tripper.",
     category: "Safety & Security",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering.png",
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png",
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png"
 )
 
@@ -22,6 +22,9 @@ preferences {
 		input "phone", "phone", title: "Phone Number (for SMS, optional)", required: false
 		input "pushAndPhone", "enum", title: "Both Push and SMS?", required: false, options: ["Yes","No"]
 	}
+    section("Sound these alarms..."){
+    	input "alarms", "capability.alarm", title: "Alarm Devices", required: false
+    }
 }
 
 def installed() {
@@ -40,7 +43,8 @@ def subscribeToEvents() {
 }
 
 def eventHandler(evt) {
-	sendMessage(evt)
+	sendMessage("${evt.displayName} has been tampered with!")
+    alarms ?: soundAlarms(alarms)
 }
 
 private sendMessage(evt) {
@@ -55,4 +59,8 @@ private sendMessage(evt) {
 		log.debug "sending SMS"
 		sendSms(phone, msg)
 	}
+}
+
+private soundAlarms(alarms){
+	alarms?.both()
 }
