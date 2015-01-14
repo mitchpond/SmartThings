@@ -11,7 +11,8 @@ definition(
     description: "Receive notification when a device is tampered with. Currently supports Quirky Tripper.",
     category: "Safety & Security",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png"
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png",
+    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Solution/tampering@2x.png"
 )
 
 preferences {
