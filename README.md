@@ -2,6 +2,7 @@
 ST DeviceTypes and SmartApps
 
 Device Tamper Alarm:
+
 A simple Smart App that will watch a number of devices and send a notification when they are tampered with. Has preliminary support for activating alarms, but I do not have an alarm to test with...
 Currently only looks for contact sensors, since there is no standard way to report tampering. Could easily be expanded to other devices if the community or SmartThings decides on a standard event/attribute for this.
 
