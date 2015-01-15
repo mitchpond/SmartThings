@@ -44,14 +44,14 @@ def subscribeToEvents() {
 }
 
 def eventHandler(evt) {
-	sendMessage("${evt.displayName} has been tampered with!")
+	String msg = "${evt.displayName} has been tampered with!"
+    log.debug msg
+    
+	sendMessage(msg)
     alarms ?: soundAlarms(alarms)
 }
 
-private sendMessage(evt) {
-	def msg = evt.descriptionText
-	log.debug "$evt.name:$evt.value, pushAndPhone:$pushAndPhone, '$msg'"
-
+private sendMessage(msg) {
 	if (!phone || pushAndPhone != "No") {
 		log.debug "sending push"
 		sendPush(msg)
