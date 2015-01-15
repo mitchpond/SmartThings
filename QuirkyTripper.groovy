@@ -38,17 +38,14 @@ metadata {
 			state("open", label:'${name}', icon:"st.contact.contact.open", backgroundColor:"#ffa81e")
 			state("closed", label:'${name}', icon:"st.contact.contact.closed", backgroundColor:"#79b821")
 		}
+        
 		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false) {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-		/*
-		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat") {
-			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-		}
-		*/
-		standardTile("tamper", "device.tamper", inactiveLabel: false, canChangeBackground: true, canChangeIcon: true) {
-			state "OK", label: "Tamper OK", backgroundColor:"#79b821", icon: "st.security.alarm.on"
-			state "tampered", label: "Tampered", action: "resetTamper", backgroundColor:"#ffa81e", icon: "st.security.alarm.off", nextState: "OK"
+        
+		standardTile("tamper", "device.tamper", canChangeIcon: true, canChangeBackground: true) {
+			state "OK", label: "Tamper OK", icon: "st.security.alarm.on", backgroundColor:"#79b821"
+			state "tampered", label: "Tampered", action: "resetTamper", icon: "st.security.alarm.off", backgroundColor:"#ffa81e", nextState: "OK"
 		}
         
 		main ("contact")
@@ -58,43 +55,34 @@ metadata {
 
 // Parse incoming device messages to generate events
 def parse(String description) {
-	log.debug "description: $description"
+	//log.debug "description: $description"
 
-	Map map = [:]
+	def results = []
 	if (description?.startsWith('catchall:')) {
-		map = parseCatchAllMessage(description)
+		results = parseCatchAllMessage(description)
 	}
 	else if (description?.startsWith('read attr -')) {
-		map = parseReportAttributeMessage(description)
+		results = parseReportAttributeMessage(description)
 	}
 	else if (description?.startsWith('zone status')) {
-		map = parseIasMessage(description)
+		results = parseIasMessage(description)
 	}
 
-	log.debug "Parse returned $map"
-	def result = map ? createEvent(map) : null
+	log.debug "Parse returned $results"
 
 	if (description?.startsWith('enroll request')) {
 		List cmds = enrollResponse()
 		log.debug "enroll response: ${cmds}"
 		result = cmds?.collect { new physicalgraph.device.HubAction(it) }
 	}
-	return result
+	return results
 }
-
-/** This command doesn't really do anything since the device sleeps 99% of the time
-
-def refresh() {
-	"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
-}
-
-*/
 
 def configure() {
 	String zigbeeId = swapEndianHex(device.hub.zigbeeId)
 	log.debug "Confuguring Reporting, IAS CIE, and Bindings."
     
-    	def cmd = [
+	def cmd = [
 		"zcl global write 0x500 0x10 0xf0 {${zigbeeId}}", "delay 200",
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
@@ -107,9 +95,9 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500",
-        "st rattr 0x${device.deviceNetworkId} 1 1 0x20"
+		"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 		]
-    	cmd
+	cmd
 }
 
 def enrollResponse() {
@@ -121,18 +109,18 @@ def enrollResponse() {
 }
 
 private Map parseCatchAllMessage(String description) {
- 	Map resultMap = [:]
+ 	def results = []
  	def cluster = zigbee.parse(description)
  	if (shouldProcessMessage(cluster)) {
 		switch(cluster.clusterId) {
 			case 0x0001:
 				log.debug "Received a catchall message for battery status. This should not happen."
-				resultMap = getBatteryResult(cluster.data.last())
+				results = createEvent(getBatteryResult(cluster.data.last()))
 				break
             }
         }
 
-	return resultMap
+	return results
 }
 
 private boolean shouldProcessMessage(cluster) {
@@ -145,57 +133,58 @@ private boolean shouldProcessMessage(cluster) {
 	return !ignoredMessage
 }
 
-private Map parseReportAttributeMessage(String description) {
+private parseReportAttributeMessage(String description) {
 	Map descMap = (description - "read attr - ").split(",").inject([:]) { map, param ->
 		def nameAndValue = param.split(":")
 		map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
 	}
 	//log.debug "Desc Map: $descMap"
 
-	Map resultMap = [:]
+	def results = []
+    
 	if (descMap.cluster == "0001" && descMap.attrId == "0020") {
 		log.debug "Received battery level report"
-		resultMap = getBatteryResult(Integer.parseInt(descMap.value, 16))
+		results = createEvent(getBatteryResult(Integer.parseInt(descMap.value, 16)))
 	}
 
-	return resultMap
+	return results
 }
 
-private Map parseIasMessage(String description) {
+private parseIasMessage(String description) {
 	List parsedMsg = description.split(' ')
 	String msgCode = parsedMsg[2]
 	int status = Integer.decode(msgCode)
 	def linkText = getLinkText(device)
 
-	Map resultMap = [:]
-    
-	if (status & 0b00000001) {resultMap = getContactResult('open')}
-	else if (~status & 0b00000001) resultMap = getContactResult('closed')
-    
+	def results = []
+	
+	if (status & 0b00000001) {results << createEvent(getContactResult('open'))}
+	else if (~status & 0b00000001) results << createEvent(getContactResult('closed'))
+
 	if (status & 0b00000100) {
     		//log.debug "Tampered"
-        	resultMap += createEvent([name: "tamper", value:"tampered"])
+            results << createEvent([name: "tamper", value:"tampered"])
 	}
 	else if (~status & 0b00000100) {
 		//don't reset the status here as we want to force a manual reset
 		//log.debug "Not tampered"
-		//resultMap += createEvent([name: "tamper", value:"OK"])
+		//results = createEvent([name: "tamper", value:"OK"])
 	}
 	
 	if (status & 0b00001000) {
 		//battery reporting seems unreliable with these devices. However, they do report when low.
 		//Just in case the battery level reporting has stopped working, we'll at least catch the low battery warning.
 		log.debug "${linkText} reports low battery!"
-		resultMap += createEvent(name: "battery", value: 10)
+		results << createEvent([name: "battery", value: 10])
 	}
 	else if (~status & 0b00001000) {
 		//log.debug "${linkText} battery OK"
 	}
-    
-	return resultMap
+	//log.debug results
+	return results
 }
 
-private Map getBatteryResult(rawValue) {
+private getBatteryResult(rawValue) {
 	//log.debug 'Battery'
 	def linkText = getLinkText(device)
 
