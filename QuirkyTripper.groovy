@@ -115,7 +115,7 @@ private Map parseCatchAllMessage(String description) {
 		switch(cluster.clusterId) {
 			case 0x0001:
 				log.debug "Received a catchall message for battery status. This should not happen."
-				results = createEvent(getBatteryResult(cluster.data.last()))
+				results << createEvent(getBatteryResult(cluster.data.last()))
 				break
             }
         }
