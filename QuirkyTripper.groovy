@@ -73,7 +73,7 @@ def parse(String description) {
 	if (description?.startsWith('enroll request')) {
 		List cmds = enrollResponse()
 		log.debug "enroll response: ${cmds}"
-		result = cmds?.collect { new physicalgraph.device.HubAction(it) }
+		results = cmds?.collect { new physicalgraph.device.HubAction(it) }
 	}
 	return results
 }
