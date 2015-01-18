@@ -109,7 +109,7 @@ def enrollResponse() {
 }
 
 private Map parseCatchAllMessage(String description) {
- 	def results = []
+ 	def results = [:]
  	def cluster = zigbee.parse(description)
  	if (shouldProcessMessage(cluster)) {
 		switch(cluster.clusterId) {
