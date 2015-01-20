@@ -157,7 +157,7 @@ private parseIasMessage(String description) {
 	def linkText = getLinkText(device)
 
 	def results = []
-	
+	log.debug(description)
 	if (status & 0b00000001) {results << createEvent(getContactResult('open'))}
 	else if (~status & 0b00000001) results << createEvent(getContactResult('closed'))
 
