@@ -157,7 +157,7 @@ private parseIasMessage(String description) {
 	def linkText = getLinkText(device)
 
 	def results = []
-	log.debug(description)
+	//log.debug(description)
 	if (status & 0b00000001) {results << createEvent(getContactResult('open'))}
 	else if (~status & 0b00000001) results << createEvent(getContactResult('closed'))
 
@@ -174,8 +174,10 @@ private parseIasMessage(String description) {
 	if (status & 0b00001000) {
 		//battery reporting seems unreliable with these devices. However, they do report when low.
 		//Just in case the battery level reporting has stopped working, we'll at least catch the low battery warning.
+		//
+		//** Commented this out as this is currently conflicting with the battery level report
 		log.debug "${linkText} reports low battery!"
-		results << createEvent([name: "battery", value: 10])
+		//results << createEvent([name: "battery", value: 10])
 	}
 	else if (~status & 0b00001000) {
 		//log.debug "${linkText} battery OK"
