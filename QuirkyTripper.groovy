@@ -175,7 +175,7 @@ private parseIasMessage(String description) {
 		//battery reporting seems unreliable with these devices. However, they do report when low.
 		//Just in case the battery level reporting has stopped working, we'll at least catch the low battery warning.
 		//
-		//** Commented this out as this is currently conflicting with the battery level report
+		//** Commented this out as this is currently conflicting with the battery level report **/
 		log.debug "${linkText} reports low battery!"
 		//results << createEvent([name: "battery", value: 10])
 	}
