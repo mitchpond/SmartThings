@@ -55,8 +55,7 @@ metadata {
 
 // Parse incoming device messages to generate events
 def parse(String description) {
-	//log.debug "description: $description"
-
+	
 	def results = []
 	if (description?.startsWith('catchall:')) {
 		results = parseCatchAllMessage(description)
@@ -67,7 +66,8 @@ def parse(String description) {
 	else if (description?.startsWith('zone status')) {
 		results = parseIasMessage(description)
 	}
-
+	
+	log.debug "Report: $description"
 	log.debug "Parse returned $results"
 
 	if (description?.startsWith('enroll request')) {
@@ -86,14 +86,13 @@ def configure() {
 		"zcl global write 0x500 0x10 0xf0 {${zigbeeId}}", "delay 200",
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
-		"zcl global send-me-a-report 0x500 0x0012 0x19 0 0xFF {}", "delay 200", //get notified on tamper
+		"zcl global send-me-a-report 0x500 0x0002 0x19 0 0xFF {}", "delay 200", //subscribe to IAS Zone ZoneStatus reports
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 		
-		"zcl global send-me-a-report 1 0x20 0x20 5 3600 {}", "delay 200", //battery report request
+		"zcl global send-me-a-report 1 0x20 0x20 1800 3600 {}", "delay 200", //battery level report request
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500",
 		"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 		]
