@@ -125,7 +125,7 @@ def refresh() {
     				"st rattr 0x${device.deviceNetworkId} 1 0x20 0x0003"
                     ],750)
 }
-/* Queueing system. Maybe not needed....
+/* Implement a queuing system. This might get overly complicated.. Maybe not needed....
 // Sets the pendingCommand attribute to turnOn
 def turnOn() {
 	sendEvent(name: "pendingCommand", value: "on")
