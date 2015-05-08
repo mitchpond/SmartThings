@@ -10,30 +10,27 @@ metadata {
         command "test"
         command "identify"
         command "getClusters"
-        
-        attribute "pendingCommand", "string"
 
-		fingerprint endpointId: "01", profileId: "0104", inClusters: "0000,0001,0003,0020,0006,0201", outClusters: "000A,0019"
+	fingerprint endpointId: "01", profileId: "0104", inClusters: "0000,0001,0003,0020,0006,0201", outClusters: "000A,0019"
 	}
 
 	// UI tile definitions
 	tiles {
 		standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
 			state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", nextState: "turningOn", backgroundColor: "#ffffff"
-            state "turningOn", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", nextState: "turningOff", backgroundColor: "#79b821"
-            state "turningOff", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", nextState: "turningOn", backgroundColor: "#ffffff"
+            		state "turningOn", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", nextState: "turningOff", backgroundColor: "#79b821"
+            		state "turningOff", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", nextState: "turningOn", backgroundColor: "#ffffff"
 			state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", nextState: "turningOff", backgroundColor: "#79b821"
 		}
-        valueTile("battery", "device.battery", decoration: "flat") {
+        	valueTile("battery", "device.battery", decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-        standardTile("configure", "device.configure", decoration: "flat") {
+        	standardTile("configure", "device.configure", decoration: "flat") {
 			state "configure", label:'', action:"configuration.configure", icon:"st.secondary.configure"
 		}
-        standardTile("refresh", "command.refresh", decoration: "flat") {
-        	state "default", label: '', action: 'refresh.refresh', icon: 'st.secondary.refresh'
-        }
-        
+        	standardTile("refresh", "command.refresh", decoration: "flat") {
+        		state "default", label: '', action: 'refresh.refresh', icon: 'st.secondary.refresh'
+        	}
 
 		main "switch"
 		details (["switch","battery","refresh","configure"])
@@ -44,23 +41,22 @@ metadata {
 def parse(String description) {
 	log.debug("Raw: $description")
     
-    if (description?.startsWith("catchall:")) {
-    	def report = zigbee.parse(description)
-    	switch(report.clusterId) {
-    		case 0x0020:
-       		 	log.debug "Received Poll Control packet"
-            	refresh()				//do something just to show that we can!
-            	break
-        	case 0x0006:
-        		return (report.data).equals([0x01,0x00])? createEvent(name: 'switch', value: 'on') :
-                		((report.data).equals([0x00, 0x00, 0x00, 0x10, 0x01]) && (report.command == 0x01))? createEvent(name: 'switch', value: 'on') :
-                		(report.data).equals([0x00,0x00])? createEvent(name: 'switch', value: 'off') :
-                        ((report.data).equals([0x00, 0x00, 0x00, 0x10, 0x00]) && (report.command == 0x01))? createEvent(name: 'switch', value: 'off') : null
-               	break
+    	if (description?.startsWith("catchall:")) {
+    		def report = zigbee.parse(description)
+    		switch(report.clusterId) {
+    			case 0x0020:
+       		 		log.debug "Received Poll Control packet"
+            		break
+        		case 0x0006:
+        			return (report.data).equals([0x01,0x00])? createEvent(name: 'switch', value: 'on') :
+                			((report.data).equals([0x00, 0x00, 0x00, 0x10, 0x01]) && (report.command == 0x01))? createEvent(name: 'switch', value: 'on') :
+                			(report.data).equals([0x00,0x00])? createEvent(name: 'switch', value: 'off') :
+                        		((report.data).equals([0x00, 0x00, 0x00, 0x10, 0x00]) && (report.command == 0x01))? createEvent(name: 'switch', value: 'off') : null
+               		break
         }
     }
     else if (description?.startsWith('read attr -')) {
-		return parseReportAttributeMessage(description)
+	return parseReportAttributeMessage(description)
     }
     //log.debug(report)
     
@@ -71,18 +67,18 @@ def parse(String description) {
 def configure(){
 	log.debug("Running configure for Orbit timer...")
     
-    [
-    "zcl global send-me-a-report 0x06 0x00 0x10 0 3600 {}", "delay 200",
+    	[
+    	"zcl global send-me-a-report 0x06 0x00 0x10 0 3600 {}", "delay 200",
 	"send 0x${device.deviceNetworkId} 1 1", "delay 500",
     
-    //"st cmd 0x${device.deviceNetworkId} 1 0x20 0x02 {14}", "delay 500",				//set Long Poll Interval
-    "st wattr 0x${device.deviceNetworkId} 1 0x20 0x00 0x23 {240}", "delay 500",
+    	//"st cmd 0x${device.deviceNetworkId} 1 0x20 0x02 {14}", "delay 500",			//set Long Poll Interval
+    	//"st wattr 0x${device.deviceNetworkId} 1 0x20 0x00 0x23 {240}", "delay 500",		//attempt to set check-in interval	
     
-    "zdo bind 0x${device.deviceNetworkId} 1 1 6 {${device.zigbeeId}} {}", "delay 500",		//device reports back success
-    "zdo bind 0x${device.deviceNetworkId} 1 1 0 {${device.zigbeeId}} {}", "delay 500",
-    "zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500"
-    ]
-    refresh()
+    	"zdo bind 0x${device.deviceNetworkId} 1 1 6 {${device.zigbeeId}} {}", "delay 500",		//device reports back success
+    	"zdo bind 0x${device.deviceNetworkId} 1 1 0 {${device.zigbeeId}} {}", "delay 500",
+    	"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500"
+    	]
+	refresh()
 }
 
 /* successful attribute reads
@@ -117,24 +113,10 @@ def getClusters() { "zdo active 0x${device.deviceNetworkId}" }
 
 def refresh() {
 	delayBetween([
-					"st rattr 0x${device.deviceNetworkId} 1 0x01 0x0020",
-    				"st rattr 0x${device.deviceNetworkId} 1 0x06 0x0000",
-    				"st rattr 0x${device.deviceNetworkId} 1 0x20 0x0000",
-    				"st rattr 0x${device.deviceNetworkId} 1 0x20 0x0001",
-    				"st rattr 0x${device.deviceNetworkId} 1 0x20 0x0002",
-    				"st rattr 0x${device.deviceNetworkId} 1 0x20 0x0003"
-                    ],750)
+		"st rattr 0x${device.deviceNetworkId} 1 0x01 0x0020",
+    		"st rattr 0x${device.deviceNetworkId} 1 0x06 0x0000"
+                ],750)
 }
-/* Implement a queuing system. This might get overly complicated.. Maybe not needed....
-// Sets the pendingCommand attribute to turnOn
-def turnOn() {
-	sendEvent(name: "pendingCommand", value: "on")
-}
-
-def turnOff() {
-	sendEvent(name: "pendingCommand", value: "off")
-}
-*/
 
 // Commands to device
 def on() {
