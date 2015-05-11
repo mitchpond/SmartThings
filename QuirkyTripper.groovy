@@ -17,17 +17,17 @@
 metadata {
 	definition (name: "Quirky/Wink Tripper", namespace: "mitchpond", author: "Mitch Pond") {
     
-	capability "Contact Sensor"
-	capability "Battery"
-	capability "Configuration"
-    capability "Sensor"
+		capability "Contact Sensor"
+		capability "Battery"
+		capability "Configuration"
+		capability "Sensor"
     
-	attribute "tamper", "string"
+		attribute "tamper", "string"
     
-	command "configure"
-	command "resetTamper"
+		command "configure"
+		command "resetTamper"
         
-	fingerprint endpointId: "01", profileId: "0104", deviceId: "0402", inClusters: "0000,0001,0003,0500,0020,0B05", outClusters: "0003,0019"
+		fingerprint endpointId: "01", profileId: "0104", deviceId: "0402", inClusters: "0000,0001,0003,0500,0020,0B05", outClusters: "0003,0019"
 	}
 
 	// simulator metadata
@@ -95,7 +95,6 @@ def configure() {
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500",
 		"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 		]
@@ -191,6 +190,7 @@ private parseIasMessage(String description) {
 
 //Converts the battery level response into a percentage to display in ST
 //and creates appropriate message for given level
+//**real-world testing with this device shows that 2.4v is about as low as it can go
 
 private getBatteryResult(rawValue) {
 	def linkText = getLinkText(device)
