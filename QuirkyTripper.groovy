@@ -190,7 +190,7 @@ private parseIasMessage(String description) {
 
 //Converts the battery level response into a percentage to display in ST
 //and creates appropriate message for given level
-//**real-world testing with this device shows that 2.4v is about as low as it can go
+//**real-world testing with this device shows that 2.4v is about as low as it can go **/
 
 private getBatteryResult(rawValue) {
 	def linkText = getLinkText(device)
