@@ -1,5 +1,5 @@
 /**
- *  Quirky Wink Tripper Contact Sensor
+ *  Quirky/Wink Tripper Contact Sensor
  *
  *  Copyright 2015 Mitch Pond, SmartThings
  *
@@ -20,6 +20,7 @@ metadata {
 	capability "Contact Sensor"
 	capability "Battery"
 	capability "Configuration"
+    capability "Sensor"
     
 	attribute "tamper", "string"
     
@@ -39,13 +40,13 @@ metadata {
 			state("closed", label:'${name}', icon:"st.contact.contact.closed", backgroundColor:"#79b821")
 		}
         
-		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false) {
+		valueTile("battery", "device.battery", decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
         
-		standardTile("tamper", "device.tamper", canChangeIcon: true, canChangeBackground: true) {
-			state "OK", label: "Tamper OK", icon: "st.security.alarm.on", backgroundColor:"#79b821"
-			state "tampered", label: "Tampered", action: "resetTamper", icon: "st.security.alarm.off", backgroundColor:"#ffa81e", nextState: "OK"
+		standardTile("tamper", "device.tamper") {
+			state "OK", label: "Tamper OK", icon: "st.security.alarm.on", backgroundColor:"#79b821", decoration: "flat"
+			state "tampered", label: "Tampered", action: "resetTamper", icon: "st.security.alarm.off", backgroundColor:"#ffa81e", decoration: "flat", nextState: "OK"
 		}
         
 		main ("contact")
@@ -55,7 +56,8 @@ metadata {
 
 // Parse incoming device messages to generate events
 def parse(String description) {
-	
+	//log.debug "description: $description"
+
 	def results = []
 	if (description?.startsWith('catchall:')) {
 		results = parseCatchAllMessage(description)
@@ -66,8 +68,7 @@ def parse(String description) {
 	else if (description?.startsWith('zone status')) {
 		results = parseIasMessage(description)
 	}
-	
-	log.debug "Report: $description"
+
 	log.debug "Parse returned $results"
 
 	if (description?.startsWith('enroll request')) {
@@ -78,6 +79,7 @@ def parse(String description) {
 	return results
 }
 
+//Initializes device and sets up reporting
 def configure() {
 	String zigbeeId = swapEndianHex(device.hub.zigbeeId)
 	log.debug "Confuguring Reporting, IAS CIE, and Bindings."
@@ -86,19 +88,21 @@ def configure() {
 		"zcl global write 0x500 0x10 0xf0 {${zigbeeId}}", "delay 200",
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
-		"zcl global send-me-a-report 0x500 0x0002 0x19 0 0xFF {}", "delay 200", //subscribe to IAS Zone ZoneStatus reports
+		"zcl global send-me-a-report 0x500 0x0012 0x19 0 0xFF {}", "delay 200", //get notified on tamper
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 		
-		"zcl global send-me-a-report 1 0x20 0x20 1800 3600 {}", "delay 200", //battery level report request
+		"zcl global send-me-a-report 1 0x20 0x20 5 3600 {}", "delay 200", //battery report request
 		"send 0x${device.deviceNetworkId} 1 1", "delay 1500",
 	
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x500 {${device.zigbeeId}} {}", "delay 500",
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0b05 {${device.zigbeeId}} {}", "delay 500",
 		"zdo bind 0x${device.deviceNetworkId} 1 1 1 {${device.zigbeeId}} {}", "delay 500",
 		"st rattr 0x${device.deviceNetworkId} 1 1 0x20"
 		]
 	cmd
 }
 
+//Sends IAS Zone Enroll response
 def enrollResponse() {
 	log.debug "Sending enroll response"
 	[	
@@ -167,7 +171,7 @@ private parseIasMessage(String description) {
 	else if (~status & 0b00000100) {
 		//don't reset the status here as we want to force a manual reset
 		//log.debug "Not tampered"
-		//results = createEvent([name: "tamper", value:"OK"])
+		//results << createEvent([name: "tamper", value:"OK"])
 	}
 	
 	if (status & 0b00001000) {
@@ -175,7 +179,7 @@ private parseIasMessage(String description) {
 		//Just in case the battery level reporting has stopped working, we'll at least catch the low battery warning.
 		//
 		//** Commented this out as this is currently conflicting with the battery level report **/
-		log.debug "${linkText} reports low battery!"
+		//log.debug "${linkText} reports low battery!"
 		//results << createEvent([name: "battery", value: 10])
 	}
 	else if (~status & 0b00001000) {
@@ -185,13 +189,13 @@ private parseIasMessage(String description) {
 	return results
 }
 
+//Converts the battery level response into a percentage to display in ST
+//and creates appropriate message for given level
+
 private getBatteryResult(rawValue) {
-	//log.debug 'Battery'
 	def linkText = getLinkText(device)
 
-	def result = [
-		name: 'battery'
-		]
+	def result = [name: 'battery']
 
 	def volts = rawValue / 10
 	def descriptionText
@@ -199,7 +203,7 @@ private getBatteryResult(rawValue) {
 		result.descriptionText = "${linkText} battery has too much power (${volts} volts)."
 	}
 	else {
-		def minVolts = 2.1
+		def minVolts = 2.4
 		def maxVolts = 3.0
 		def pct = (volts - minVolts) / (maxVolts - minVolts)
 		result.value = Math.min(100, (int) pct * 100)
@@ -220,6 +224,7 @@ private Map getContactResult(value) {
 		]
 }
 
+//Resets the tamper switch state
 private resetTamper(){
 	log.debug "Tamper alarm reset."
 	sendEvent([name: "tamper", value:"OK"])
