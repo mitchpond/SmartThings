@@ -46,7 +46,7 @@ metadata {
         
 		standardTile("tamper", "device.tamper") {
 			state "OK", label: "Tamper OK", icon: "st.security.alarm.on", backgroundColor:"#79b821", decoration: "flat"
-			state "tampered", label: "Tampered", action: "resetTamper", icon: "st.security.alarm.off", backgroundColor:"#ffa81e", decoration: "flat", nextState: "OK"
+			state "tampered", label: "Tampered", action: "resetTamper", icon: "st.security.alarm.off", backgroundColor:"#ffa81e", decoration: "flat"
 		}
         
 		main ("contact")
