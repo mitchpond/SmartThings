@@ -43,58 +43,73 @@ preferences {
 	section("Choose lights..."){
 		input "lights", "capability.colorControl", title: "Pick your lights", required: false, multiple: true
 	}
-	section("Set an interval between color changes"){
-		input "interval", "number", title: "Color change interval (default 10)", required: false
+	section("Adjust color change speed and timeout"){
+		input "interval", "number", title: "Color change interval (default 10)",   required: false
+		input "timeout",  "number", title: "How long to run (in min. Default 60)", required: false
 	}
 }
 
 def installed() {
-	log.debug "Installed with settings: ${settings}"
+  settings.interval = 10    //default value: 10 seconds
+  settings.timeout  = 60    //default value: 60 minutes
+  state.running     = false
+	log.debug("Installed with settings: ${settings}")
 	updated()
 }
 
 def updated() {
-	log.debug "Updated with settings: ${settings}"
-    state.running = false
-    unsubscribe()
-    subscribe(app, onAppTouch)
-    subscribeToCommand(lights, "off", onLightOff)
+	log.debug("Updated with settings: ${settings}")
+  unsubscribe()
+  subscribe(app, onAppTouch)
+  subscribeToCommand(lights, "off", onLightOff)
 }
 
 def onLightOff(evt) {
-    //if one of the lights in our device list is turned off, and we are running, unschedule any pending color changes
-    if (state.running) {
-        log.info("${app.name}: One of our lights was turned off. Stopping execution...")
-        unschedule()
-        state.running = false
-    }
+  //if one of the lights in our device list is turned off, and we are running, unschedule any pending color changes
+  if (state.running) {
+      log.info("${app.name}: One of our lights was turned off.")
+      stop()
+  }
 }
 
 def onAppTouch(evt) {
 	//if currently running, unschedule any scheduled function calls
-    //if not running, start our scheduling loop
+  //if not running, start our scheduling loop
     
 	if (state.running) {
-    	log.debug("${app.name} is running. Stopping execution...")
-    	unschedule()
-        state.running = false
+    	log.debug("${app.name} is running.")
+    	stop()
     }
     else if (!state.running) {
-    	log.debug("${app.name} is not running. Beginning execution...")
-        lights*.on()
-    	changeColor()
-        state.running = true
+    	log.debug("${app.name} is not running.")
+      start()
     }
 	
 }
 
 def changeColor() {
+  if (!state.running) return  //just return without doing anything in case unschedule() doesn't finish before next function call
+	
 	//calculate a random color, send the setColor command, then schedule our next execution
-    log.info("${app.name}: Running scheduled color change")
-    def nextHue = new Random().nextInt(101)
-    def nextSat = new Random().nextInt(101)
-    //def nextColor = Integer.toHexString(new Random().nextInt(0x1000000))
-    log.debug nextColor
-    lights*.setColor(hue: nextHue, saturation: nextSat)
-    runIn(settings.interval, changeColor)
+	log.info("${app.name}: Running scheduled color change")
+	def nextHue = new Random().nextInt(101)
+	def nextSat = new Random().nextInt(101)
+	//def nextColor = Integer.toHexString(new Random().nextInt(0x1000000))
+	log.debug nextColor
+	lights*.setColor(hue: nextHue, saturation: nextSat)
+	runIn(settings.interval, changeColor)
+}
+
+def start() {
+  log.debug("${app.name}: Beginning execution...")
+  lights*.on()
+  changeColor()
+  runIn(settings.timeout*60, stop)
+  state.running = true
+}
+
+def stop() {
+  log.debug("${app.name}: Stopping execution...")
+  unschedule()
+  state.running = false
 }
