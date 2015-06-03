@@ -97,7 +97,7 @@ def changeColor() {
     //calculate a random color, send the setColor command, then schedule our next execution
     log.info("${app.name}: Running scheduled color change")
     def nextHue = new Random().nextInt(101)
-    def nextSat = new Random().nextInt(101)
+    def nextSat = new Random().nextInt(51)+50
     //def nextColor = Integer.toHexString(new Random().nextInt(0x1000000))
     log.debug nextColor
     lights*.setColor(hue: nextHue, saturation: nextSat)
