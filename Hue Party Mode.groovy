@@ -3,7 +3,7 @@
 *
 *  Author: Mitch Pond
 *  Date: 2015-05-29
-el
+
 Copyright (c) 2015, Mitch Pond
 All rights reserved.
 
