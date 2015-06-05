@@ -106,10 +106,10 @@ def changeColor() {
 
 def start() {
     log.debug("${app.name}: Beginning execution...")
+    state.running = true
     lights*.on()
     changeColor()
     runIn(settings.timeout*60, stop)
-    state.running = true
 }
 
 def stop() {
